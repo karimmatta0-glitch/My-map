@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Map</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="My Map">
+<meta name="theme-color" content="#0b0f1a"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#0b0f1a;--card:#121829;--line:#222b44;--text:#eef2ff;--mute:#8b95b5;--win:#34d399;--lose:#f87171;--live:#fbbf24;--acc:#818cf8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,#1e1b4b 0,transparent 60%),radial-gradient(900px 500px at 110% 10%,#064e3b 0,transparent 55%),var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom))}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{margin:0;font-size:28px;letter-spacing:-.02em}.sub{color:var(--mute);font-size:13px}
+.hero{background:linear-gradient(135deg,#4f46e5,#7c3aed 45%,#059669);border-radius:20px;padding:22px 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;box-shadow:0 20px 50px -20px #7c3aed88}
+.hero .k{font-size:12px;text-transform:uppercase;letter-spacing:.08em;opacity:.8}.hero .v{font-size:30px;font-weight:750;margin-top:2px}
+.tabs{display:flex;gap:8px;margin:22px 0 14px;flex-wrap:wrap}
+.tab{background:var(--card);border:1px solid var(--line);color:var(--mute);padding:8px 16px;border-radius:999px;cursor:pointer;font-weight:600}
+.tab.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.card.mine{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lg{font-size:12px;color:var(--mute)}.st{font-size:12px;font-weight:700}
+.st.in{color:var(--live)}.st.post{color:var(--mute)}.st.pre{color:var(--acc)}
+.team{display:flex;justify-content:space-between;margin-top:6px;font-size:16px}.team b{font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--live);margin-right:6px;animation:p 1.2s infinite}
+@keyframes p{50%{opacity:.25}}
+.tag{font-size:11px;padding:2px 8px;border-radius:999px;background:#312e81;color:#c7d2fe;font-weight:700}
+.tag.y{background:#064e3b;color:#a7f3d0}.tag.n{background:#3f1d1d;color:#fecaca}.tag.live{animation:p 1.6s infinite}.tag.o{background:#422006;color:#fde68a}
+table{width:100%;border-collapse:collapse}td,th{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--mute);font-size:12px;font-weight:600}
+.num{text-align:right;font-variant-numeric:tabular-nums}.pos{color:var(--win)}.neg{color:var(--lose)}
+.panel{display:none}.panel.on{display:block}.empty{color:var(--mute);padding:20px;text-align:center}
+.note{color:var(--mute);font-size:12px;margin-top:14px}
+@media(max-width:600px){.hero .v{font-size:24px}td,th{padding:8px 4px;font-size:13px}}
+</style></head><body><div class="wrap">
+<header><div><h1>My Map</h1><div class="sub">Bets · picks · crypto · live scores</div></div><div class="sub" id="clock"></div></header>
+<section class="hero" id="hero"></section>
+<nav class="tabs"><button class="tab on" data-p="live">Live scores</button><button class="tab" data-p="bets">My bets</button><button class="tab" data-p="picks">Next picks</button><button class="tab" data-p="test">Under 80% test</button><button class="tab" data-p="crypto">Crypto</button></nav>
+<section class="panel on" id="live"><div class="grid" id="scores"><div class="empty">Loading live scores…</div></div><div class="note" id="upd"></div></section>
+<section class="panel" id="bets"><div class="card"><table id="bt"></table></div></section>
+<section class="panel" id="picks"><div class="card"><table id="pt"></table></div><div class="note">Rule: bet only singles at 80%+ chance. "Skip" = below 80%.</div></section>
+<section class="panel" id="test"><div class="grid" id="bands" style="margin-bottom:12px"></div><div class="card"><table id="tt"></table></div>
+<div class="note">Paper test, no money. Every match's most likely winner is tracked, sorted by chance band, to see whether picks under 80% also pay.
+Profit is per $1 at fair odds; BetArabia pays about 5% less. Judge only after 100+ results per band.</div></section>
+<section class="panel" id="crypto"><div class="card"><table id="ct"></table></div><div class="note">Paper trading only. Split money into 10 slices; each follows its coin's signal.</div></section>
+<div class="note">Everything updates by itself while this page is open: scores, your bets and the prediction test every 30 s (ESPN), crypto every minute (Binance). New picks and odds come from the daily run (built <span id="built"></span>).</div>
+</div>
+<script>
+const DATA={"mybets": [{"id": "B1", "placed": "2026-11-01 13:32", "type": "Multibet (4)", "legs": "Como (1.29) \u00b7 Machac (1.15) \u00b7 Alcaraz (1.20) \u00b7 Real Madrid (1.22)", "total_odds": 2.18, "stake": 50.0, "potential_return": 109.15, "status": "Won", "profit": 59.15}, {"id": "B2", "placed": "2026-11-01 18:00", "type": "Multibet (2) live", "legs": "Liverpool v Arsenal: Under 3.5 goals \u00b7 Arsenal to win", "total_odds": 1.83, "stake": 50.0, "potential_return": 91.5, "status": "Open", "profit": 0.0}], "picks": [{"id": "Alejandro Tabilo v Rafael Jodar", "day": "Mon 2 Nov", "time": "13:10", "sport": "Atp Paris Masters", "match": "Alejandro Tabilo v Rafael Jodar", "pick": "Rafael Jodar", "chance": 0.781, "fair_odds": 1.28, "bet": "No"}, {"id": "Alejandro Davidovich Fokina v Moise Kouame", "day": "Mon 2 Nov", "time": "12:00", "sport": "Atp Paris Masters", "match": "Alejandro Davidovich Fokina v Moise Kouame", "pick": "Alejandro Davidovich Fokina", "chance": 0.714, "fair_odds": 1.4, "bet": "No"}, {"id": "Ignacio Buse v Zizou Bergs", "day": "Mon 2 Nov", "time": "12:00", "sport": "Atp Paris Masters", "match": "Ignacio Buse v Zizou Bergs", "pick": "Zizou Bergs", "chance": 0.704, "fair_odds": 1.42, "bet": "No"}, {"id": "Novak Djokovic v Valentin Vacherot", "day": "Mon 2 Nov", "time": "12:00", "sport": "Atp Paris Masters", "match": "Novak Djokovic v Valentin Vacherot", "pick": "Novak Djokovic", "chance": 0.685, "fair_odds": 1.46, "bet": "No"}, {"id": "Cameron Norrie v Matteo Arnaldi", "day": "Mon 2 Nov", "time": "14:20", "sport": "Atp Paris Masters", "match": "Cameron Norrie v Matteo Arnaldi", "pick": "Cameron Norrie", "chance": 0.68, "fair_odds": 1.47, "bet": "No"}, {"id": "Atalanta BC v Parma", "day": "Mon 2 Nov", "time": "21:45", "sport": "Italy Serie A", "match": "Atalanta BC v Parma", "pick": "Atalanta BC", "chance": 0.641, "fair_odds": 1.56, "bet": "No"}], "preds": [{"id": "670a521efbb7b642d7f0bd4dce70c790", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-01 13:00", "sport": "Atp Paris Masters", "match": "Sebastian Baez v Tomas Machac", "pick": "Tomas Machac", "chance": 0.811, "fair_odds": 1.23, "band": "80%+", "result": "Won", "score": "2-6 4-6", "pnl": 0.23}, {"id": "6c520ed959578ca3aebe351ee3765d53", "sport_key": "soccer_spain_la_liga", "date": "2026-11-01 15:15", "sport": "Spain La Liga", "match": "Real Racing Club de Santander v Real Madrid", "pick": "Real Madrid", "chance": 0.804, "fair_odds": 1.24, "band": "80%+", "result": "Won", "score": "0-3", "pnl": 0.24}, {"id": "39b752c46a334d801ef2449710faa164", "sport_key": "tennis_atp_vienna_open", "date": "2026-11-01 13:00", "sport": "Atp Vienna Open", "match": "Alex de Minaur v Carlos Alcaraz", "pick": "Carlos Alcaraz", "chance": 0.801, "fair_odds": 1.25, "band": "80%+", "result": "Won", "score": "1-6 4-6", "pnl": 0.25}, {"id": "0b15b685479df1479050365848bcfe54", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 10:00", "sport": "Atp Paris Masters", "match": "Alejandro Tabilo v Rafael Jodar", "pick": "Rafael Jodar", "chance": 0.778, "fair_odds": 1.28, "band": "70-79%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "9507f4bcbcfd4e4953720628a2b86a17", "sport_key": "soccer_italy_serie_a", "date": "2026-11-01 11:30", "sport": "Italy Serie A", "match": "Como v Venezia", "pick": "Como", "chance": 0.753, "fair_odds": 1.33, "band": "70-79%", "result": "Won", "score": "1-0", "pnl": 0.33}, {"id": "ab2cc6778482917ac72005c2edb26824", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 10:00", "sport": "Atp Paris Masters", "match": "Ignacio Buse v Zizou Bergs", "pick": "Zizou Bergs", "chance": 0.705, "fair_odds": 1.42, "band": "70-79%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "e8559eaac12af915cfe6597644620c13", "sport_key": "basketball_nba", "date": "2026-11-01 20:40", "sport": "Nba", "match": "Orlando Magic v Boston Celtics", "pick": "Boston Celtics", "chance": 0.695, "fair_odds": 1.44, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "d25fdbba0ee28a3bbfa27a1b7bf0310b", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 10:00", "sport": "Atp Paris Masters", "match": "Andrey Rublev v Tomas Martin Etcheverry", "pick": "Andrey Rublev", "chance": 0.693, "fair_odds": 1.44, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "db55f6491d2491e31599e3af63c11471", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 10:00", "sport": "Atp Paris Masters", "match": "Arthur Rinderknech v Francisco Cerundolo", "pick": "Francisco Cerundolo", "chance": 0.679, "fair_odds": 1.47, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "a397cd2c21e2038f589dfcc1bbf4a5d9", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 10:00", "sport": "Atp Paris Masters", "match": "Cameron Norrie v Matteo Arnaldi", "pick": "Cameron Norrie", "chance": 0.676, "fair_odds": 1.48, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "3f9f4bc9a19bf36dcb74be2f29610d55", "sport_key": "soccer_italy_serie_a", "date": "2026-11-01 14:00", "sport": "Italy Serie A", "match": "Lazio v Cagliari", "pick": "Lazio", "chance": 0.656, "fair_odds": 1.52, "band": "60-69%", "result": "Won", "score": "2-1", "pnl": 0.52}, {"id": "5262991e389930615bec34b642428c93", "sport_key": "soccer_spain_la_liga", "date": "2026-11-01 19:30", "sport": "Spain La Liga", "match": "Elche CF v Valencia", "pick": "Elche CF", "chance": 0.432, "fair_odds": 2.32, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "aeadf1388a1075328536501576b3d550", "sport_key": "soccer_italy_serie_a", "date": "2026-11-01 21:45", "sport": "Italy Serie A", "match": "Juventus v Napoli", "pick": "Juventus", "chance": 0.428, "fair_odds": 2.34, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "3757bcd765c7da1538cdf2785e784038", "sport_key": "soccer_spain_la_liga", "date": "2026-11-01 22:00", "sport": "Spain La Liga", "match": "Athletic Bilbao v Real Sociedad", "pick": "Athletic Bilbao", "chance": 0.479, "fair_odds": 2.09, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "fc3e945a5be88d3f933456bc512c956d", "sport_key": "basketball_nba", "date": "2026-11-02 00:10", "sport": "Nba", "match": "Indiana Pacers v Brooklyn Nets", "pick": "Indiana Pacers", "chance": 0.61, "fair_odds": 1.64, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "094b083ace229ca31ff360a80e35a1a8", "sport_key": "basketball_nba", "date": "2026-11-02 03:40", "sport": "Nba", "match": "Golden State Warriors v Los Angeles Clippers", "pick": "Golden State Warriors", "chance": 0.545, "fair_odds": 1.84, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "31fc89cbf3846e545e8e41a543a71d24", "sport_key": "basketball_nba", "date": "2026-11-02 04:10", "sport": "Nba", "match": "Los Angeles Lakers v Toronto Raptors", "pick": "Los Angeles Lakers", "chance": 0.573, "fair_odds": 1.75, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "b04959d8930aba4535db09fe57f9d093", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 12:00", "sport": "Atp Paris Masters", "match": "Alejandro Davidovich Fokina v Moise Kouame", "pick": "Alejandro Davidovich Fokina", "chance": 0.712, "fair_odds": 1.4, "band": "70-79%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "9e065ecef1e149fdf4c5e361ba6d2f2b", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 12:00", "sport": "Atp Paris Masters", "match": "Lorenzo Musetti v Hubert Hurkacz", "pick": "Hubert Hurkacz", "chance": 0.517, "fair_odds": 1.94, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "1ead1ee3704640aea824a5759ad1cc28", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 12:00", "sport": "Atp Paris Masters", "match": "Novak Djokovic v Valentin Vacherot", "pick": "Novak Djokovic", "chance": 0.685, "fair_odds": 1.46, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "35c20c072dc49b1f1762bd71838ad56b", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 13:10", "sport": "Atp Paris Masters", "match": "Luca Van Assche v Mariano Navone", "pick": "Luca Van Assche", "chance": 0.612, "fair_odds": 1.63, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "d54412ae826f63d7234c2ea00d4809ac", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 14:20", "sport": "Atp Paris Masters", "match": "Daniel Merida Aguilar v Alexander Blockx", "pick": "Alexander Blockx", "chance": 0.6, "fair_odds": 1.67, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "66608b64d462d1d3deabe573c8456d86", "sport_key": "soccer_italy_serie_a", "date": "2026-11-02 19:30", "sport": "Italy Serie A", "match": "Sassuolo v Fiorentina", "pick": "Fiorentina", "chance": 0.411, "fair_odds": 2.43, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "1a6898d788e3c5c7ecfb78edf5d4e8ab", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 20:00", "sport": "Atp Paris Masters", "match": "Denis Shapovalov v Karen Khachanov", "pick": "Karen Khachanov", "chance": 0.6, "fair_odds": 1.67, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "85efb20e93a6ca08964f6239e9956dae", "sport_key": "tennis_atp_paris_masters", "date": "2026-11-02 21:30", "sport": "Atp Paris Masters", "match": "Ugo Humbert v Botic van de Zandschulp", "pick": "Ugo Humbert", "chance": 0.603, "fair_odds": 1.66, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "2e488800d615a94e5377c195810303c0", "sport_key": "soccer_italy_serie_a", "date": "2026-11-02 21:45", "sport": "Italy Serie A", "match": "Atalanta BC v Parma", "pick": "Atalanta BC", "chance": 0.639, "fair_odds": 1.56, "band": "60-69%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "7a2cd2744fdf15ea675423a6c23df46b", "sport_key": "soccer_spain_la_liga", "date": "2026-11-02 22:00", "sport": "Spain La Liga", "match": "Deportivo La Coru\u00f1a v CA Osasuna", "pick": "Deportivo La Coru\u00f1a", "chance": 0.444, "fair_odds": 2.25, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}, {"id": "0f552d9c6990c69474f50ff2fb54e9a3", "sport_key": "soccer_epl", "date": "2026-11-02 22:00", "sport": "Epl", "match": "Newcastle United v Everton", "pick": "Newcastle United", "chance": 0.415, "fair_odds": 2.41, "band": "under 60%", "result": "Open", "score": "", "pnl": 0.0}], "crypto": [{"coin": "BTC", "date": "2026-10-31", "price": 77582.02, "signal": "Cash", "size": 0.0, "vs_average": -0.0534}, {"coin": "ETH", "date": "2026-10-31", "price": 2255.66, "signal": "Cash", "size": 0.0, "vs_average": -0.1057}, {"coin": "SOL", "date": "2026-10-31", "price": 95.54, "signal": "Cash", "size": 0.0, "vs_average": -0.1249}, {"coin": "BNB", "date": "2026-10-31", "price": 703.95, "signal": "Cash", "size": 0.0, "vs_average": -0.0603}, {"coin": "XRP", "date": "2026-10-31", "price": 1.2519, "signal": "Cash", "size": 0.0, "vs_average": -0.1015}, {"coin": "DOGE", "date": "2026-10-31", "price": 0.07563, "signal": "Cash", "size": 0.0, "vs_average": -0.1215}, {"coin": "ADA", "date": "2026-10-31", "price": 0.193, "signal": "Cash", "size": 0.0, "vs_average": -0.1569}, {"coin": "AVAX", "date": "2026-10-31", "price": 8.579, "signal": "Cash", "size": 0.0, "vs_average": -0.124}, {"coin": "LINK", "date": "2026-10-31", "price": 11.67, "signal": "Cash", "size": 0.0, "vs_average": -0.0764}, {"coin": "LTC", "date": "2026-10-31", "price": 55.78, "signal": "Cash", "size": 0.0, "vs_average": -0.0956}], "equity": {"bot": 2.183, "hold": 2.783, "since": "2023-01-01"}, "built": "2026-11-01 18:36 UTC"};
+const $=s=>document.querySelector(s), money=x=>(x<0?"-$":"$")+Math.abs(x).toFixed(2), pct=x=>Math.round(x*100)+"%";
+const TZ="Asia/Beirut", hm=d=>new Date(d).toLocaleString("en-GB",{timeZone:TZ,weekday:"short",hour:"2-digit",minute:"2-digit"});
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{document.querySelectorAll(".tab,.panel").forEach(e=>e.classList.remove("on"));t.classList.add("on");$("#"+t.dataset.p).classList.add("on")});
+$("#built").textContent=DATA.built;
+setInterval(()=>$("#clock").textContent="Lebanon "+new Date().toLocaleTimeString("en-GB",{timeZone:TZ,hour:"2-digit",minute:"2-digit"}),1000);
+const tag=(s,cls)=>`<span class="tag ${cls}">${s}</span>`, stTag=s=>tag(s,s==="Won"?"y":s==="Lost"?"n":s.startsWith("Live")?"o live":"");
+
+// ---------- live data: ESPN scoreboards (no key) ----------
+const PATHS={soccer_epl:"soccer/eng.1",soccer_spain_la_liga:"soccer/esp.1",soccer_uefa_champs_league:"soccer/uefa.champions",soccer_italy_serie_a:"soccer/ita.1",soccer_germany_bundesliga:"soccer/ger.1",basketball_nba:"basketball/nba"};
+const LG={"soccer/eng.1":"Premier League","soccer/esp.1":"La Liga","soccer/uefa.champions":"Champions League","soccer/ita.1":"Serie A","soccer/ger.1":"Bundesliga","basketball/nba":"NBA","tennis/atp":"ATP","tennis/wta":"WTA"};
+const pathOf=k=>PATHS[k]||(k&&k.startsWith("tennis_wta")?"tennis/wta":k&&k.startsWith("tennis")?"tennis/atp":null);
+const STOP=new Set(["real","club","city","united","athletic","sporting","under","over","goals","total","multibet","live","draw","with","win","to"]);
+const words=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").split(/[^a-z]+/).filter(w=>w.length>3&&!STOP.has(w));
+const ymd=d=>d.toISOString().slice(0,10).replace(/-/g,"");
+const cache={};let netOK=false,netFail=false;
+async function board(path,day){
+  const key=path+"|"+(day||""), c=cache[key], old=day&&day<ymd(new Date(Date.now()-864e5));
+  if(c&&(old&&c.done||Date.now()-c.t<25e3))return c.games;
+  try{
+    const d=await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard`+(day?`?dates=${day}`:""))).json(), games=[];
+    for(const e of d.events||[]){
+      if(e.groupings){for(const g of e.groupings){if(!/Singles/.test(g.grouping?.displayName||""))continue;
+        for(const c of g.competitions){const cs=c.competitors||[];if(cs.length!==2)continue;
+          games.push({path,lg:LG[path]+" · "+e.shortName,date:c.date,st:c.status.type.state,detail:c.status.type.shortDetail,
+            names:cs.map(x=>x.athlete?.displayName||"?"),match:cs.map(x=>x.athlete?.displayName||""),
+            sets:cs.map(x=>(x.linescores||[]).map(l=>l.value)),win:cs.map(x=>!!x.winner)})}}}
+      else{const c=e.competitions[0], cs=c.competitors.slice().sort(a=>a.homeAway==="home"?-1:1);
+        const sc=cs.map(x=>+x.score||0), done=e.status.type.state==="post";
+        games.push({path,lg:LG[path],date:c.date,st:e.status.type.state,detail:e.status.type.shortDetail,
+          names:cs.map(x=>x.team.shortDisplayName),match:cs.map(x=>x.team.displayName+" "+x.team.shortDisplayName),
+          goals:sc,win:done?[sc[0]>sc[1],sc[1]>sc[0]]:[false,false]})}
+    }
+    cache[key]={t:Date.now(),games,done:games.every(g=>g.st==="post")};netOK=true;return games;
+  }catch(err){netFail=true;return c?c.games:[]}
+}
+const score=g=>g.sets?g.sets[0].map((v,i)=>`${v}-${g.sets[1][i]??""}`).join(" "):(g.st==="pre"?"":g.goals.join("-"));
+function find(games,a,b){ // best game whose two sides match names a and b
+  let best=null,bs=0;
+  for(const g of games){const A=words(a),B=words(b),m0=words(g.match[0]),m1=words(g.match[1]);
+    const o=(x,y)=>x.filter(w=>y.includes(w)).length, s1=o(A,m0)&&o(B,m1)?o(A,m0)+o(B,m1):0, s2=o(A,m1)&&o(B,m0)?o(A,m1)+o(B,m0):0;
+    if(Math.max(s1,s2)>bs){bs=Math.max(s1,s2);best={g,flip:s2>s1}}}
+  return best;
+}
+function findBy(games,text){let best=null,bs=0;const W=words(text);
+  for(const g of games){const s=W.filter(w=>words(g.match.join(" ")).includes(w)).length;if(s>bs){bs=s;best=g}}return best}
+async function gamesFor(path,dates){const all=await Promise.all([board(path),...[...dates].map(d=>board(path,d))]);return all.flat()}
+const daysAround=iso=>{const t=new Date(iso.replace(" ","T")+"+02:00");return[ymd(new Date(t-6e5*0)),ymd(new Date(+t+6*36e5))]};
+
+// ---------- predictions (under-80% test), settled live ----------
+async function livePreds(){
+  const byPath={};
+  for(const p of DATA.preds){const path=pathOf(p.sport_key);if(!path)continue;(byPath[path]=byPath[path]||new Set());if(p.result==="Open")daysAround(p.date).forEach(d=>byPath[path].add(d))}
+  const G={};await Promise.all(Object.entries(byPath).map(async([path,ds])=>G[path]=await gamesFor(path,path.startsWith("tennis")?[]:ds)));
+  for(const p of DATA.preds){
+    p.live="";if(p.result!=="Open")continue;
+    const path=pathOf(p.sport_key), [h,a]=p.match.split(" v "), f=path&&G[path]&&find(G[path],h,a);
+    if(!f)continue;const g=f.g, hi=f.flip?1:0, ai=1-hi, sc=g.sets?g.sets[hi].map((v,i)=>`${v}-${g.sets[ai][i]??""}`).join(" "):(g.st==="pre"?"":`${g.goals[hi]}-${g.goals[ai]}`);
+    p.score=sc;
+    if(g.st==="in")p.live="Live "+g.detail;
+    if(g.st==="post"){const won=p.pick==="Draw"?!g.win[0]&&!g.win[1]:g.win[p.pick===h?hi:ai];p.result=won?"Won":"Lost";p.pnl=won?p.fair_odds-1:-1;p.auto=1}
+  }
+  renderPreds();
+}
+const BANDS=["80%+","70-79%","60-69%","under 60%"];
+function renderPreds(){
+  $("#bands").innerHTML=BANDS.map(b=>{const r=DATA.preds.filter(p=>p.band===b),d=r.filter(p=>p.result!=="Open"),w=d.filter(p=>p.result==="Won").length,u=d.reduce((s,p)=>s+p.pnl,0);
+   return `<div class="card${b==="80%+"?" mine":""}"><div class=row><b>${b}</b><span class=lg>${r.length-d.length} waiting</span></div>
+   <div style="font-size:26px;font-weight:750;margin-top:6px">${d.length?w+" / "+d.length:"–"}</div><div class=lg>${d.length?"won ("+Math.round(100*w/d.length)+"%)":"no results yet"}</div>
+   <div class="${u>0?"pos":u<0?"neg":""}" style="margin-top:4px;font-weight:700">${d.length?(u>=0?"+$":"-$")+Math.abs(u*10).toFixed(2)+" if $10 on each":""}</div></div>`}).join("");
+  const rank=p=>p.live?0:p.result==="Open"?1:2;
+  const pr=DATA.preds.slice().sort((a,b)=>rank(a)-rank(b)||(rank(a)===2?b.date.localeCompare(a.date):a.date.localeCompare(b.date)));
+  $("#tt").innerHTML="<tr><th>When</th><th>Match</th><th>Pick</th><th class=num>Chance</th><th class=num>Odds</th><th>Result</th></tr>"+pr.map(p=>
+   `<tr><td>${p.date.slice(5)}<div class=lg>${p.sport}</div></td><td>${p.match}${p.score?`<div class=lg><b>${p.score}</b></div>`:""}</td><td><b>${p.pick}</b></td><td class=num>${pct(p.chance)}</td><td class=num><b>${p.fair_odds.toFixed(2)}</b><div class=lg>BetArabia ≈${(p.fair_odds*0.95).toFixed(2)}</div></td><td>${stTag(p.live||p.result)}</td></tr>`).join("");
+  hero();
+}
+
+// ---------- my real bets, legs followed live ----------
+async function liveBets(){
+  const all=(await Promise.all(Object.values(LG).map((_,i)=>board(Object.keys(LG)[i])))).flat();
+  for(const b of DATA.mybets){
+    b.legInfo=[];b.liveStatus=b.status;if(b.status!=="Open")continue;
+    let ctx=null;const legs=b.legs.split(" · ");
+    for(const raw of legs){
+      let leg=raw;const m=raw.match(/^(.+? v .+?):\s*(.*)$/);
+      if(m){const [h,a]=m[1].split(" v ");const f=find(all,h,a);ctx=f?f.g:null;leg=m[2]}
+      const g=ctx||findBy(all,leg);if(!g){b.legInfo.push({leg:raw,st:"Waiting",txt:"no game found yet"});continue}
+      let ok=null,txt=`${g.names[0]} ${score(g)||"vs"} ${g.names[1]} · ${g.st==="pre"?hm(g.date):g.detail}`;
+      const tot=(g.goals||[0,0]).reduce((s,x)=>s+x,0), u=leg.match(/under\s*(\d+(?:\.\d)?)/i), o=leg.match(/over\s*(\d+(?:\.\d)?)/i);
+      if(u)ok=tot<+u[1]; else if(o)ok=tot>+o[1]; else if(/draw/i.test(leg))ok=g.goals&&g.goals[0]===g.goals[1];
+      else{const W=words(leg);const side=[0,1].find(i=>words(g.match[i]).some(w=>W.includes(w)));if(side==null){b.legInfo.push({leg:raw,st:"Waiting",txt});continue}
+        ok=g.st==="post"?g.win[side]:(g.goals?g.goals[side]>g.goals[1-side]:null)}
+      const st=g.st==="post"?(ok?"Won":"Lost"):g.st==="in"?(ok?"Live ✓ winning":"Live ✗ not yet"):"Waiting";
+      b.legInfo.push({leg:raw,st,txt});
+    }
+    const S=b.legInfo.map(l=>l.st);
+    b.liveStatus=S.includes("Lost")?"Lost":S.length&&S.every(s=>s==="Won")?"Won":S.some(s=>s.startsWith("Live"))?(S.every(s=>s==="Won"||s.startsWith("Live ✓"))?"Live ✓ on track":"Live ✗ at risk"):"Open";
+  }
+  renderBets();
+}
+function renderBets(){
+  $("#bt").innerHTML="<tr><th>Bet</th><th>Legs</th><th class=num>Odds</th><th class=num>Stake</th><th>Status</th><th class=num>Profit</th></tr>"+DATA.mybets.slice().reverse().map(b=>{
+   const s=b.liveStatus||b.status, p=s==="Won"?b.potential_return-b.stake:s==="Lost"?-b.stake:null;
+   const legs=b.legInfo&&b.legInfo.length?b.legInfo.map(l=>`<div style="margin:3px 0">${stTag(l.st)} ${l.leg}<div class=lg>${l.txt}</div></div>`).join(""):b.legs;
+   return `<tr><td><b>${b.id}</b><div class=lg>${b.placed}</div></td><td>${legs}</td><td class=num>${b.total_odds}</td><td class=num>${money(b.stake)}</td><td>${stTag(s)}</td><td class="num ${p>0?"pos":p<0?"neg":""}">${p==null?"→ "+money(b.potential_return):money(p)}</td></tr>`}).join("");
+  hero();
+}
+
+// ---------- next picks (from the daily odds run) ----------
+$("#pt").innerHTML=DATA.picks.length?"<tr><th>Time</th><th>Match</th><th>Pick</th><th class=num>Chance</th><th class=num>Odds</th><th>Rule</th></tr>"+DATA.picks.map(p=>
+ `<tr><td>${p.day}<div class=lg>${p.time}</div></td><td>${p.match}<div class=lg>${p.sport}</div></td><td><b>${p.pick}</b></td><td class=num>${pct(p.chance)}</td><td class=num><b>${(p.fair_odds||1/p.chance).toFixed(2)}</b><div class=lg>bet at ≥${((p.fair_odds||1/p.chance)*1.03).toFixed(2)}</div></td><td>${tag(p.bet==="Yes"?"Bet":"Skip",p.bet==="Yes"?"y":"n")}</td></tr>`).join(""):"<tr><td class=empty>No picks yet.</td></tr>";
+
+// ---------- crypto, live from Binance (no key) ----------
+async function liveCrypto(){
+  await Promise.all(DATA.crypto.map(async c=>{try{
+    const k=await (await fetch(`https://data-api.binance.vision/api/v3/klines?symbol=${c.coin}USDT&interval=1d&limit=62`)).json();
+    const cl=k.map(x=>+x[4]), t=cl.length-2, avg=cl.slice(t-49,t+1).reduce((s,x)=>s+x,0)/50, w=cl.slice(t-10,t), hi=Math.max(...w), lo=Math.min(...w);
+    const r=cl.slice(t-29,t+1).map((x,i,a)=>i?x/a[i-1]-1:cl[t-30]?x/cl[t-30]-1:0), vol=Math.sqrt(r.reduce((s,x)=>s+x*x,0)/r.length*365);
+    const on=cl[t]>avg&&cl[t]>lo+0.5*(hi-lo);
+    Object.assign(c,{now:cl[cl.length-1],chg:cl[cl.length-1]/cl[t]-1,signal:on?"Hold":"Cash",size:on&&vol?Math.min(1,0.6/vol):0,vs_average:cl[t]/avg-1,live:1});
+  }catch(e){}}));
+  renderCrypto();
+}
+function renderCrypto(){
+  const f=x=>x>=1?x.toLocaleString(undefined,{maximumFractionDigits:2}):(+x).toPrecision(4);
+  $("#ct").innerHTML="<tr><th>Coin</th><th class=num>Price now</th><th class=num>Today</th><th>Signal</th><th class=num>Size</th><th class=num>vs 50-day avg</th></tr>"+DATA.crypto.map(c=>
+   `<tr><td><b>${c.coin}</b></td><td class=num>$${f(c.now??c.price)}</td><td class="num ${c.chg>=0?"pos":"neg"}">${c.chg==null?"":(c.chg>=0?"+":"")+(c.chg*100).toFixed(1)+"%"}</td><td>${tag(c.signal,c.signal==="Hold"?"y":"n")}</td><td class=num>${Math.round(c.size*100)}%</td><td class="num ${c.vs_average>=0?"pos":"neg"}">${(c.vs_average*100).toFixed(1)}%</td></tr>`).join("")
+   +(DATA.equity?`<tr><td colspan=6 class=lg>Backtest since ${DATA.equity.since}: bot ${((DATA.equity.bot-1)*100).toFixed(0)}% vs just holding ${((DATA.equity.hold-1)*100).toFixed(0)}%. Signal uses yesterday's close; it can only change once a day.</td></tr>`:"");
+  hero();
+}
+
+// ---------- hero ----------
+let liveCount=0;
+function hero(){
+  const S=b=>b.liveStatus||b.status, settled=DATA.mybets.filter(b=>S(b)==="Won"||S(b)==="Lost");
+  const profit=settled.reduce((s,b)=>s+(S(b)==="Won"?b.potential_return-b.stake:-b.stake),0), won=settled.filter(b=>S(b)==="Won").length;
+  const open=DATA.mybets.filter(b=>!settled.includes(b)), t=DATA.preds.filter(p=>p.result!=="Open"), tw=t.filter(p=>p.result==="Won").length;
+  $("#hero").innerHTML=[["Real profit",money(profit)],["My record",won+" won · "+(settled.length-won)+" lost"],["Open bets",open.length?open.map(b=>S(b).replace("Open","waiting")).join(", "):"none"],
+   ["Prediction test",t.length?tw+"/"+t.length+" won":"–"],["Live now",liveCount+" games"],["Coins on Hold",DATA.crypto.filter(c=>c.signal==="Hold").length+" / "+DATA.crypto.length]]
+   .map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+
+// ---------- live scores tab ----------
+const watch=new Set([...DATA.mybets.filter(b=>b.status==="Open").flatMap(b=>words(b.legs)),...DATA.picks.flatMap(p=>words(p.pick)),...DATA.preds.filter(p=>p.result==="Open").flatMap(p=>words(p.pick))]);
+const mine=g=>g.match.some(n=>words(n).some(w=>watch.has(w)));
+async function liveScores(){
+  const now=Date.now(), out=[];
+  const all=(await Promise.all(Object.keys(LG).map(p=>board(p)))).flat().filter(g=>g.st==="in"||Math.abs(new Date(g.date)-now)<30*36e5);
+  for(const g of all){const m=mine(g);out.push({m,live:g.st==="in",html:`<div class="card${m?" mine":""}"><div class=row><span class=lg>${g.lg}</span>${m?tag("Yours",""):""}</div>
+   <div class="st ${g.st}">${g.st==="in"?'<span class=dot></span>':""}${g.st==="pre"?hm(g.date):g.detail}</div>
+   ${g.names.map((n,i)=>`<div class=team><span>${g.win[i]?"<b>"+n+"</b>":n}</span><b>${g.sets?g.sets[i].join(" "):g.st==="pre"?"":g.goals[i]}</b></div>`).join("")}</div>`})}
+  out.sort((a,b)=>(b.m-a.m)||(b.live-a.live));
+  liveCount=out.filter(o=>o.live).length;
+  $("#scores").innerHTML=out.length?out.map(o=>o.html).join(""):(netFail&&!netOK?'<div class=empty>Live scores can\'t load in this view. Open map.html on your PC for live scores; everything else here is from the last update.</div>':'<div class=empty>No matches in the next day.</div>');
+  $("#upd").textContent="Updated "+new Date().toLocaleTimeString("en-GB",{timeZone:TZ})+" (Lebanon) · "+liveCount+" live now";
+}
+
+async function tick(){await liveScores();await Promise.all([liveBets(),livePreds()]);}
+renderBets();renderPreds();renderCrypto();tick();liveCrypto();
+setInterval(tick,30000);setInterval(liveCrypto,60000);
+</script></body></html>
